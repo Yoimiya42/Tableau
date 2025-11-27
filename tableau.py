@@ -21,9 +21,9 @@ QUANTIFIERS = {'A', 'E'}
 NEGATION = '~'
 
 # Binary connectives
-BINARY_CONNECTIVES = {'&', '\\/', '->'}
+BINARY_CONNECTIVES = {'&', "\\/", "->"}
 
-print("-" in BINARY_CONNECTIVES)
+
 
 # Parse a formula, consult parseOutputs for return values.
 def parse(fmla):
