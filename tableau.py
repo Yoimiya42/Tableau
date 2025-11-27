@@ -51,6 +51,9 @@ def sat(tableau):
 #output 0 if not satisfiable, output 1 if satisfiable, output 2 if number of constants exceeds MAX_CONSTANTS
     return 0
 
+
+
+def is_prop_atom(fmla:str) -> bool:
 #------------------------------------------------------------------------------------------------------------------------------:
 #                                            DO NOT MODIFY THE CODE BELOW THIS LINE!                                           :
 #------------------------------------------------------------------------------------------------------------------------------:
