@@ -1,7 +1,29 @@
 
 MAX_CONSTANTS = 10
 
+# ===========================================
+# Legal tokens
+# ===========================================
 
+# Propositional letters
+PROP = {'p', 'q', 'r', 's'}
+
+# FOL variables
+VAR = {'x', 'y', 'z', 'w'}
+
+# FOL predicate symbols (binary)
+PRED = {'P', 'Q', 'R', 'S'}
+
+# FOL quantifiers
+QUANTIFIERS = {'A', 'E'}
+
+# Unary connective
+NEGATION = '~'
+
+# Binary connectives
+BINARY_CONNECTIVES = {'&', '\\/', '->'}
+
+print("-" in BINARY_CONNECTIVES)
 
 # Parse a formula, consult parseOutputs for return values.
 def parse(fmla):
