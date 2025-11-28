@@ -1,5 +1,4 @@
 PARSE SAT
-Ex~P(x,x)
 ~(p->(q->p))
 (~(p->q)&q)
 (~~~p\/(q&~q))

@@ -1,6 +1,4 @@
-
 MAX_CONSTANTS = 10
-
 
 
 # Parse a formula, consult parseOutputs for return values.
@@ -121,15 +119,18 @@ def parse(fmla):
     parse._ast_cache[fmla] = ast
     return classification
 
+
 # Return the LHS of a binary connective formula
 def lhs(fmla):
     cache = getattr(parse, '_binary_cache', {})
     return cache.get(fmla, ('', '', ''))[0]
 
+
 # Return the connective symbol of a binary connective formula
 def con(fmla):
     cache = getattr(parse, '_binary_cache', {})
     return cache.get(fmla, ('', '', ''))[1]
+
 
 # Return the RHS symbol of a binary connective formula
 def rhs(fmla):
@@ -138,16 +139,20 @@ def rhs(fmla):
 
 
 # You may choose to represent a theory as a set or a list
-def theory(fmla):#initialise a theory with a single formula in it
+def theory(fmla):  # initialise a theory with a single formula in it
     ast = getattr(parse, '_ast_cache', {}).get(fmla)
     if not ast:
         parse(fmla)
         ast = getattr(parse, '_ast_cache', {}).get(fmla)
     return [ast] if ast else []
 
-#check for satisfiability
+
+# check for satisfiability
 def sat(tableau):
-#output 0 if not satisfiable, output 1 if satisfiable, output 2 if number of constants exceeds MAX_CONSTANTS
+    # output 0 if not satisfiable, output 1 if satisfiable, output 2 if number of constants exceeds MAX_CONSTANTS
+
+    # --- basic helpers over ASTs and literals ---
+
     def to_str(ast):
         if ast[0] == 'prop':
             return ast[1]
@@ -183,18 +188,28 @@ def sat(tableau):
             return (kind, ast[1], substitute(ast[2], var, const))
         return ast
 
+    def is_atom(ast):
+        return ast[0] in ('prop', 'pred')
+
     def is_literal(ast):
         if ast[0] == 'not':
             return is_atom(ast[1])
         return is_atom(ast)
 
-    def is_atom(ast):
-        return ast[0] in ('prop', 'pred')
-
     def complement(lit):
         if lit[0] == 'not':
             return lit[1]
         return ('not', lit)
+
+    def branch_closed(lits):
+        lit_set = set(to_str(l) for l in lits)
+        for l in lits:
+            comp = to_str(complement(l))
+            if comp in lit_set:
+                return True
+        return False
+
+    # --- branch / constant helpers ---
 
     def add_constant(branch, const):
         if const not in branch['constants']:
@@ -209,13 +224,122 @@ def sat(tableau):
                     used.add(const)
         return True
 
-    def branch_closed(lits):
-        lit_set = set(to_str(l) for l in lits)
-        for l in lits:
-            comp = to_str(complement(l))
-            if comp in lit_set:
+    def clone_branch(br, extra_pending=None):
+        return {
+            'pending': br['pending'][:] + (extra_pending or []),
+            'lits': br['lits'][:],
+            'constants': br['constants'][:],
+            'universals': br['universals'][:],
+            'forall_used': {k: set(v) for k, v in br['forall_used'].items()}
+        }
+
+    # --- α / β / γ / δ / ¬ rules ---
+
+    def expand_alpha(br, f):
+        kind = f[0]
+
+        # (φ & ψ)
+        if kind == 'and':
+            br['pending'].extend([f[1], f[2]])
+            return True
+
+        # ¬¬φ, ¬(φ ∨ ψ), ¬(φ -> ψ)
+        if kind == 'not':
+            sub = f[1]
+            sub_kind = sub[0]
+
+            # ¬¬φ
+            if sub_kind == 'not':
+                br['pending'].append(sub[1])
                 return True
+
+            # ¬(φ ∨ ψ)
+            if sub_kind == 'or':
+                br['pending'].append(('not', sub[1]))
+                br['pending'].append(('not', sub[2]))
+                return True
+
+            # ¬(φ -> ψ)
+            if sub_kind == 'imp':
+                br['pending'].append(sub[1])
+                br['pending'].append(('not', sub[2]))
+                return True
+
         return False
+
+    def expand_beta(br, f, branches):
+        kind = f[0]
+
+        # (φ ∨ ψ)
+        if kind == 'or':
+            branches.append(clone_branch(br, [f[1]]))
+            branches.append(clone_branch(br, [f[2]]))
+            return True
+
+        # (φ -> ψ)
+        if kind == 'imp':
+            left, right = f[1], f[2]
+            branches.append(clone_branch(br, [('not', left)]))
+            branches.append(clone_branch(br, [right]))
+            return True
+
+        # ¬(φ & ψ)
+        if kind == 'not' and f[1][0] == 'and':
+            sub = f[1]
+            branches.append(clone_branch(br, [('not', sub[1])]))
+            branches.append(clone_branch(br, [('not', sub[2])]))
+            return True
+
+        return False
+
+    def expand_negation(br, f, branches):
+        sub = f[1]
+        sub_kind = sub[0]
+
+        # ¬¬φ, ¬(φ ∨ ψ), ¬(φ -> ψ) 已经由 expand_alpha 处理，不会走到这里
+
+        # ¬(φ & ψ) 属于 β，由 expand_beta 处理
+
+        # ¬∀x φ  ≡ ∃x ¬φ
+        if sub_kind == 'forall':
+            br['pending'].append(('exists', sub[1], ('not', sub[2])))
+            return True
+
+        # ¬∃x φ ≡ ∀x ¬φ
+        if sub_kind == 'exists':
+            br['pending'].append(('forall', sub[1], ('not', sub[2])))
+            return True
+
+        return False
+
+    def expand_gamma(br, f):
+        # ∀x φ
+        if f not in br['universals']:
+            br['universals'].append(f)
+
+        key = to_str(f)
+        used = br['forall_used'].setdefault(key, set())
+
+        if not br['constants']:
+            if not add_constant(br, 'c1'):
+                return 2
+
+        for const in list(br['constants']):
+            if const not in used:
+                br['pending'].append(substitute(f[2], f[1], const))
+                used.add(const)
+
+        return True
+
+    def expand_delta(br, f):
+        # ∃x φ
+        new_const = 'c' + str(len(br['constants']) + 1)
+        if not add_constant(br, new_const):
+            return 2
+        br['pending'].append(substitute(f[2], f[1], new_const))
+        return True
+
+    # --- collect initial constants ---
 
     branches = []
     initial_constants = set()
@@ -248,10 +372,15 @@ def sat(tableau):
     }
     branches.append(init_branch)
 
+    # --- main tableau loop ---
+
     while branches:
         br = branches.pop()
+
         while br['pending']:
             f = br['pending'].pop()
+
+            # literals
             if is_literal(f):
                 if branch_closed(br['lits'] + [f]):
                     br = None
@@ -261,104 +390,32 @@ def sat(tableau):
 
             kind = f[0]
 
-            if kind == 'and':
-                br['pending'].extend([f[1], f[2]])
+            # α rules
+            if expand_alpha(br, f):
                 continue
-            if kind == 'or':
-                new_br1 = {
-                    'pending': br['pending'] + [f[1]],
-                    'lits': list(br['lits']),
-                    'constants': list(br['constants']),
-                    'universals': list(br['universals']),
-                    'forall_used': {k: set(v) for k, v in br['forall_used'].items()}
-                }
-                new_br2 = {
-                    'pending': br['pending'] + [f[2]],
-                    'lits': list(br['lits']),
-                    'constants': list(br['constants']),
-                    'universals': list(br['universals']),
-                    'forall_used': {k: set(v) for k, v in br['forall_used'].items()}
-                }
-                branches.append(new_br1)
-                branches.append(new_br2)
+
+            # β rules
+            if expand_beta(br, f, branches):
                 br = None
                 break
-            if kind == 'imp':
-                left, right = f[1], f[2]
-                new_br1 = {
-                    'pending': br['pending'] + [('not', left)],
-                    'lits': list(br['lits']),
-                    'constants': list(br['constants']),
-                    'universals': list(br['universals']),
-                    'forall_used': {k: set(v) for k, v in br['forall_used'].items()}
-                }
-                new_br2 = {
-                    'pending': br['pending'] + [right],
-                    'lits': list(br['lits']),
-                    'constants': list(br['constants']),
-                    'universals': list(br['universals']),
-                    'forall_used': {k: set(v) for k, v in br['forall_used'].items()}
-                }
-                branches.append(new_br1)
-                branches.append(new_br2)
-                br = None
-                break
+
+            # negation rules (for quantifiers)
             if kind == 'not':
-                sub = f[1]
-                if sub[0] == 'not':
-                    br['pending'].append(sub[1])
+                if expand_negation(br, f, branches):
                     continue
-                if sub[0] == 'and':
-                    new_br1 = {
-                        'pending': br['pending'] + [('not', sub[1])],
-                        'lits': list(br['lits']),
-                        'constants': list(br['constants']),
-                        'universals': list(br['universals']),
-                        'forall_used': {k: set(v) for k, v in br['forall_used'].items()}
-                    }
-                    new_br2 = {
-                        'pending': br['pending'] + [('not', sub[2])],
-                        'lits': list(br['lits']),
-                        'constants': list(br['constants']),
-                        'universals': list(br['universals']),
-                        'forall_used': {k: set(v) for k, v in br['forall_used'].items()}
-                    }
-                    branches.append(new_br1)
-                    branches.append(new_br2)
-                    br = None
-                    break
-                if sub[0] == 'or':
-                    br['pending'].append(('not', sub[1]))
-                    br['pending'].append(('not', sub[2]))
-                    continue
-                if sub[0] == 'imp':
-                    br['pending'].append(sub[1])
-                    br['pending'].append(('not', sub[2]))
-                    continue
-                if sub[0] == 'forall':
-                    br['pending'].append(('exists', sub[1], ('not', sub[2])))
-                    continue
-                if sub[0] == 'exists':
-                    br['pending'].append(('forall', sub[1], ('not', sub[2])))
-                    continue
+
+            # γ rule: ∀
             if kind == 'forall':
-                if f not in br['universals']:
-                    br['universals'].append(f)
-                key = to_str(f)
-                used = br['forall_used'].setdefault(key, set())
-                if not br['constants']:
-                    if not add_constant(br, 'c1'):
-                        return 2
-                for const in list(br['constants']):
-                    if const not in used:
-                        br['pending'].append(substitute(f[2], f[1], const))
-                        used.add(const)
-                continue
-            if kind == 'exists':
-                new_const = 'c' + str(len(br['constants']) + 1)
-                if not add_constant(br, new_const):
+                r = expand_gamma(br, f)
+                if r == 2:
                     return 2
-                br['pending'].append(substitute(f[2], f[1], new_const))
+                continue
+
+            # δ rule: ∃
+            if kind == 'exists':
+                r = expand_delta(br, f)
+                if r == 2:
+                    return 2
                 continue
 
         if br is None:
@@ -370,6 +427,7 @@ def sat(tableau):
         return 1
 
     return 0
+
 
 #------------------------------------------------------------------------------------------------------------------------------:
 #                                            DO NOT MODIFY THE CODE BELOW THIS LINE!                                           :
