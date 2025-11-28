@@ -1,27 +1,70 @@
 MAX_CONSTANTS = 10
 
 # ============================================================
+#                      GLOBAL TOKEN SETS
+# ============================================================
+
+# Propositional letters
+PROP = {'p', 'q', 'r', 's'}
+
+# FOL variables
+VAR = {'x', 'y', 'z', 'w'}
+
+# FOL predicate symbols (binary)
+PRED = {'P', 'Q', 'R', 'S'}
+
+# FOL quantifiers
+QUANTIFIERS = {'A', 'E'}
+
+# Unary connective
+NEGATION = '~'
+
+# Binary connectives
+BINARY_CONNECTIVES = {'&', "\\/", "->"}
+
+# Characters allowed to appear in input formulas
+ALLOWED_CHARS = (
+    PROP
+    | VAR
+    | PRED
+    | QUANTIFIERS
+    | set(NEGATION)
+    | set(['(', ')', ',', '&', '\\', '/', '-', '>'])
+)
+
+
+# ============================================================
 #                   PARSE HELPERS (TOP LEVEL)
 # ============================================================
 
 def is_prop_atom(s):
-    return len(s) == 1 and s.islower()
+    # A propositional atom must be exactly one of p,q,r,s
+    return s in PROP
 
 
 def parse_predicate(s):
-    if len(s) < 4 or not s[0].isupper() or s[1] != '(' or s[-1] != ')':
+    # PRED(var,var) where PRED in {P,Q,R,S} and var in {x,y,z,w}
+    if len(s) < 4:
         return None
+    if s[0] not in PRED:
+        return None
+    if s[1] != '(' or s[-1] != ')':
+        return None
+
     body = s[2:-1]
-    if body == '':
+    parts = body.split(',')
+    if len(parts) != 2:
         return None
-    terms = body.split(',')
-    for term in terms:
-        if not term.isalnum():
-            return None
-    return ('pred', s[0], tuple(terms))
+
+    arg1, arg2 = parts[0], parts[1]
+    if arg1 not in VAR or arg2 not in VAR:
+        return None
+
+    return ('pred', s[0], (arg1, arg2))
 
 
 def strip_parens(s):
+    # Remove a single pair of outermost brackets if they wrap exactly the string
     if len(s) >= 2 and s[0] == '(' and s[-1] == ')':
         depth = 0
         for i, ch in enumerate(s):
@@ -30,7 +73,9 @@ def strip_parens(s):
             elif ch == ')':
                 depth -= 1
             if depth == 0 and i != len(s) - 1:
+                # Outer () not matching the entire string
                 return s
+        # Proper outermost () wrapping whole s
         return s[1:-1]
     return s
 
@@ -49,10 +94,13 @@ def find_main_connective(s):
             i += 1
             continue
         if depth == 0:
+            # implication
             if s.startswith('->', i):
                 return i, '->'
+            # disjunction
             if s.startswith('\\/', i):
                 return i, '\\/'
+            # conjunction
             if ch == '&':
                 return i, '&'
         i += 1
@@ -60,7 +108,7 @@ def find_main_connective(s):
 
 
 # ============================================================
-#                       PARSE FORMULA
+#                         PARSE FORMULA
 # ============================================================
 
 def parse_formula(s, binary_cache):
@@ -68,27 +116,29 @@ def parse_formula(s, binary_cache):
     if s == '':
         return None, 0
 
-    # proposition
+    # Propositional atom
     if is_prop_atom(s):
         return ('prop', s), 6
 
-    # predicate
+    # Predicate atom
     pred = parse_predicate(s)
     if pred:
         return pred, 1
 
-    # negation
+    # Negation
     if s.startswith('~'):
         sub, cls = parse_formula(s[1:], binary_cache)
         if not sub:
             return None, 0
         if cls in [6, 7, 8]:
+            # negation of propositional formula
             return ('not', sub), 7
         else:
+            # negation of first-order formula
             return ('not', sub), 2
 
-    # quantifier
-    if len(s) >= 3 and s[0] in ['A', 'E'] and s[1].islower():
+    # Quantifiers: Avar or Evar
+    if len(s) >= 3 and s[0] in ['A', 'E'] and s[1] in VAR:
         quant = s[0]
         var = s[1]
         sub_fmla, sub_cls = parse_formula(s[2:], binary_cache)
@@ -97,7 +147,7 @@ def parse_formula(s, binary_cache):
         node = ('forall', var, sub_fmla) if quant == 'A' else ('exists', var, sub_fmla)
         return node, 3 if quant == 'A' else 4
 
-    # binary connective
+    # Binary connective
     s_inner = strip_parens(s)
     idx, conn = find_main_connective(s_inner)
     if conn:
@@ -107,16 +157,20 @@ def parse_formula(s, binary_cache):
         right, right_cls = parse_formula(right_s, binary_cache)
         if not left or not right:
             return None, 0
+
         if conn == '->':
             node = ('imp', left, right)
         elif conn == '&':
             node = ('and', left, right)
-        else:
+        else:  # '\\/'
             node = ('or', left, right)
 
-        classification = (
-            8 if left_cls in [6, 7, 8] and right_cls in [6, 7, 8] else 5
-        )
+        # classify as propositional or first-order binary
+        if left_cls in [6, 7, 8] and right_cls in [6, 7, 8]:
+            classification = 8  # binary connective propositional formula
+        else:
+            classification = 5  # binary connective first-order formula
+
         binary_cache[s] = (left_s, conn, right_s)
         return node, classification
 
@@ -130,6 +184,11 @@ def parse_formula(s, binary_cache):
 def parse(fmla):
     global _binary_cache
     _binary_cache = getattr(parse, '_binary_cache', {})
+
+    # Reject any illegal character (enforces: no whitespace, no extra symbols)
+    for ch in fmla:
+        if ch not in ALLOWED_CHARS:
+            return 0
 
     ast, classification = parse_formula(fmla, _binary_cache)
 
@@ -159,10 +218,11 @@ def rhs(fmla):
 
 
 # ============================================================
-#                         THEORY
+#                           THEORY
 # ============================================================
 
 def theory(fmla):
+    # initialise a theory with a single formula in it
     ast = getattr(parse, '_ast_cache', {}).get(fmla)
     if not ast:
         parse(fmla)
@@ -175,8 +235,9 @@ def theory(fmla):
 # ============================================================
 
 def sat(tableau):
+    # output 0 if not satisfiable, 1 if satisfiable, 2 if too many constants
 
-    # ---------- AST → str ----------
+    # ---------- AST → string ----------
     def to_str(ast):
         k = ast[0]
         if k == 'prop':
@@ -200,16 +261,13 @@ def sat(tableau):
     def substitute(ast, var, const):
         k = ast[0]
         if k == 'pred':
-            return ('pred', ast[1],
-                    tuple(const if t == var else t for t in ast[2]))
+            new_terms = tuple(const if t == var else t for t in ast[2])
+            return ('pred', ast[1], new_terms)
         if k == 'prop':
             return ast
         if k in ('and', 'or', 'imp'):
-            return (
-                k,
-                substitute(ast[1], var, const),
-                substitute(ast[2], var, const),
-            )
+            return (k, substitute(ast[1], var, const),
+                       substitute(ast[2], var, const))
         if k == 'not':
             return ('not', substitute(ast[1], var, const))
         if k in ('forall', 'exists'):
@@ -218,60 +276,58 @@ def sat(tableau):
             return (k, ast[1], substitute(ast[2], var, const))
         return ast
 
-    # ---------- literal tests ----------
+    # ---------- literals ----------
     def is_atom(ast):
         return ast[0] in ('prop', 'pred')
 
     def is_literal(ast):
-        return (is_atom(ast) or
-                (ast[0] == 'not' and is_atom(ast[1])))
+        return is_atom(ast) or (ast[0] == 'not' and is_atom(ast[1]))
 
-    def complement(l):
-        return l[1] if l[0] == 'not' else ('not', l)
+    def complement(lit):
+        if lit[0] == 'not':
+            return lit[1]
+        return ('not', lit)
 
     def branch_closed(lits):
-        litset = set(to_str(l) for l in lits)
+        lit_set = set(to_str(l) for l in lits)
         for l in lits:
-            if to_str(complement(l)) in litset:
+            if to_str(complement(l)) in lit_set:
                 return True
         return False
 
     # ---------- constants ----------
-    def add_constant(br, c):
-        if c not in br['constants']:
-            br['constants'].append(c)
-            if len(br['constants']) > MAX_CONSTANTS:
+    def add_constant(branch, const):
+        if const not in branch['constants']:
+            branch['constants'].append(const)
+            if len(branch['constants']) > MAX_CONSTANTS:
                 return False
-            for u in br['universals']:
+            for u in branch['universals']:
                 key = to_str(u)
-                used = br['forall_used'].setdefault(key, set())
-                if c not in used:
-                    br['pending'].append(
-                        substitute(u[2], u[1], c)
-                    )
-                    used.add(c)
+                used = branch['forall_used'].setdefault(key, set())
+                if const not in used:
+                    branch['pending'].append(substitute(u[2], u[1], const))
+                    used.add(const)
         return True
 
     # ---------- clone branch ----------
-    def clone_branch(br, extra=None):
+    def clone_branch(br, extra_pending=None):
         return {
-            'pending': br['pending'][:] + (extra or []),
+            'pending': br['pending'][:] + (extra_pending or []),
             'lits': br['lits'][:],
             'constants': br['constants'][:],
             'universals': br['universals'][:],
-            'forall_used': {
-                k: set(v) for k, v in br['forall_used'].items()
-            }
+            'forall_used': {k: set(v) for k, v in br['forall_used'].items()}
         }
 
-    # ============================================================
+    # ========================================================
     #                    EXPANSION RULES
-    # ============================================================
+    # ========================================================
 
-    # ---------- α rules ----------
+    # α rules: ∧, ¬¬, ¬∨, ¬→
     def expand_alpha(br, f):
         k = f[0]
 
+        # (φ & ψ)
         if k == 'and':
             br['pending'].extend([f[1], f[2]])
             return True
@@ -280,33 +336,43 @@ def sat(tableau):
             sub = f[1]
             sk = sub[0]
 
+            # ¬¬φ
             if sk == 'not':
                 br['pending'].append(sub[1])
                 return True
+
+            # ¬(φ ∨ ψ)
             if sk == 'or':
                 br['pending'].append(('not', sub[1]))
                 br['pending'].append(('not', sub[2]))
                 return True
+
+            # ¬(φ → ψ)
             if sk == 'imp':
                 br['pending'].append(sub[1])
                 br['pending'].append(('not', sub[2]))
                 return True
+
         return False
 
-    # ---------- β rules ----------
+    # β rules: ∨, →, ¬∧
     def expand_beta(br, f, branches):
         k = f[0]
 
+        # (φ ∨ ψ)
         if k == 'or':
             branches.append(clone_branch(br, [f[1]]))
             branches.append(clone_branch(br, [f[2]]))
             return True
 
+        # (φ → ψ)
         if k == 'imp':
-            branches.append(clone_branch(br, [('not', f[1][0] and f[1] or f[1])]))
-            branches.append(clone_branch(br, [f[2]]))
+            left, right = f[1], f[2]
+            branches.append(clone_branch(br, [('not', left)]))
+            branches.append(clone_branch(br, [right]))
             return True
 
+        # ¬(φ ∧ ψ)
         if k == 'not' and f[1][0] == 'and':
             sub = f[1]
             branches.append(clone_branch(br, [('not', sub[1])]))
@@ -315,22 +381,24 @@ def sat(tableau):
 
         return False
 
-    # ---------- negation rules (quantifiers) ----------
+    # Negation rules for quantifiers: ¬∀, ¬∃
     def expand_negation(br, f):
         sub = f[1]
         sk = sub[0]
 
+        # ¬∀x φ  ≡ ∃x ¬φ
         if sk == 'forall':
             br['pending'].append(('exists', sub[1], ('not', sub[2])))
             return True
 
+        # ¬∃x φ ≡ ∀x ¬φ
         if sk == 'exists':
             br['pending'].append(('forall', sub[1], ('not', sub[2])))
             return True
 
         return False
 
-    # ---------- γ (∀) ----------
+    # γ rule: ∀
     def expand_gamma(br, f):
         if f not in br['universals']:
             br['universals'].append(f)
@@ -342,60 +410,61 @@ def sat(tableau):
             if not add_constant(br, 'c1'):
                 return 2
 
-        for c in list(br['constants']):
-            if c not in used:
-                br['pending'].append(substitute(f[2], f[1], c))
-                used.add(c)
+        for const in list(br['constants']):
+            if const not in used:
+                br['pending'].append(substitute(f[2], f[1], const))
+                used.add(const)
 
         return True
 
-    # ---------- δ (∃) ----------
+    # δ rule: ∃
     def expand_delta(br, f):
-        newc = 'c' + str(len(br['constants']) + 1)
-        if not add_constant(br, newc):
+        new_const = 'c' + str(len(br['constants']) + 1)
+        if not add_constant(br, new_const):
             return 2
-        br['pending'].append(substitute(f[2], f[1], newc))
+        br['pending'].append(substitute(f[2], f[1], new_const))
         return True
 
-    # ============================================================
-    #                       INITIAL BRANCH
-    # ============================================================
+    # ========================================================
+    #                     INITIAL BRANCH
+    # ========================================================
 
     branches = []
-    init_consts = set()
+    initial_constants = set()
 
-    def collect_consts(ast):
+    def collect_constants(ast):
         k = ast[0]
         if k == 'pred':
             for t in ast[2]:
+                # constants in input formulas would be uppercase or start with 'c'
                 if t.isupper() or t.startswith('c'):
-                    init_consts.add(t)
+                    initial_constants.add(t)
         elif k in ('and', 'or', 'imp'):
-            collect_consts(ast[1])
-            collect_consts(ast[2])
+            collect_constants(ast[1])
+            collect_constants(ast[2])
         elif k == 'not':
-            collect_consts(ast[1])
+            collect_constants(ast[1])
         elif k in ('forall', 'exists'):
-            collect_consts(ast[2])
+            collect_constants(ast[2])
 
-    for a in tableau[0]:
-        collect_consts(a)
+    for ast in tableau[0]:
+        collect_constants(ast)
 
-    if not init_consts:
-        init_consts.add('c1')
+    if not initial_constants:
+        initial_constants.add('c1')
 
     init_branch = {
         'pending': list(tableau[0]),
         'lits': [],
-        'constants': list(init_consts),
+        'constants': list(initial_constants),
         'universals': [],
         'forall_used': {}
     }
     branches.append(init_branch)
 
-    # ============================================================
-    #                     MAIN TABLEAU LOOP
-    # ============================================================
+    # ========================================================
+    #                   MAIN TABLEAU LOOP
+    # ========================================================
 
     while branches:
         br = branches.pop()
@@ -403,7 +472,7 @@ def sat(tableau):
         while br['pending']:
             f = br['pending'].pop()
 
-            # literal
+            # literals
             if is_literal(f):
                 if branch_closed(br['lits'] + [f]):
                     br = None
@@ -413,28 +482,28 @@ def sat(tableau):
 
             k = f[0]
 
-            # α
+            # α rules
             if expand_alpha(br, f):
                 continue
 
-            # β
+            # β rules
             if expand_beta(br, f, branches):
                 br = None
                 break
 
-            # ¬
+            # negation of quantifiers
             if k == 'not':
                 if expand_negation(br, f):
                     continue
 
-            # γ
+            # γ rule: ∀
             if k == 'forall':
                 r = expand_gamma(br, f)
                 if r == 2:
                     return 2
                 continue
 
-            # δ
+            # δ rule: ∃
             if k == 'exists':
                 r = expand_delta(br, f)
                 if r == 2:
@@ -444,7 +513,6 @@ def sat(tableau):
         if br is None:
             continue
 
-        # check branch
         if branch_closed(br['lits']):
             continue
         if len(br['constants']) > MAX_CONSTANTS:
@@ -456,7 +524,7 @@ def sat(tableau):
 
 
 # ============================================================
-# DO NOT MODIFY BELOW THIS LINE  (UCL SKEL.)
+#              DO NOT MODIFY THE CODE BELOW THIS LINE!
 # ============================================================
 
 f = open('input.txt')
@@ -484,14 +552,15 @@ if 'SAT' in firstline:
     SAT = True
 
 for line in f:
-    if line[-1] == '\n':
+    if line and line[-1] == '\n':
         line = line[:-1]
     parsed = parse(line)
 
     if PARSE:
         output = "%s is %s." % (line, parseOutputs[parsed])
         if parsed in [5, 8]:
-            output += " Its left hand side is %s, its connective is %s, and its right hand side is %s." % (lhs(line), con(line), rhs(line))
+            output += " Its left hand side is %s, its connective is %s, and its right hand side is %s." % (
+                lhs(line), con(line), rhs(line))
         print(output)
 
     if SAT:

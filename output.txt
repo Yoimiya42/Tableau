@@ -46,3 +46,51 @@ Ex~P(x,x) is satisfiable.
 (Ax(P(x,x)&~P(x,x))&ExQ(x,x)) is not satisfiable.
 ExEy(P(x,y)&Ex~P(x,y)) is an existentially quantified formula.
 ExEy(P(x,y)&Ex~P(x,y)) is satisfiable.
+p is a proposition. 
+p is satisfiable.
+~p is a negation of a propositional formula. 
+~p is satisfiable.
+(p&q) is a binary connective propositional formula. Its left hand side is p, its connective is &, and its right hand side is q. 
+(p&q) is satisfiable.
+(p->q) is a binary connective propositional formula. Its left hand side is p, its connective is ->, and its right hand side is q. 
+(p->q) is satisfiable.
+~(p->p) is a negation of a propositional formula. 
+~(p->p) is not satisfiable.
+((p\/q)->(~q)) is a binary connective propositional formula. Its left hand side is (p\/q), its connective is ->, and its right hand side is ~q. 
+((p\/q)->(~q)) is satisfiable.
+~~p is a negation of a propositional formula. 
+~~p is satisfiable.
+~(p\/~p) is a negation of a propositional formula.
+ ~(p\/~p) is not satisfiable.
+P(x,y) is an atom. 
+P(x,y) is satisfiable.
+~P(x,x) is a negation of a first order logic formula.
+ ~P(x,x) is satisfiable.
+AxP(x,x) is a universally quantified formula. 
+AxP(x,x) is satisfiable.
+EyP(x,y) is an existentially quantified formula. 
+EyP(x,y) is satisfiable.
+(P(x,y)->Q(y,x)) is a binary connective first order formula. Its left hand side is P(x,y), its connective is ->, and its right hand side is Q(y,x). 
+(P(x,y)->Q(y,x)) is satisfiable.
+(~P(x,y)&R(y,x)) is a binary connective first order formula. Its left hand side is ~P(x,y), its connective is &, and its right hand side is R(y,x).
+ (~P(x,y)&R(y,x)) is satisfiable.
+Ax(P(x,x)->AyP(y,y)) is a universally quantified formula. 
+Ax(P(x,x)->AyP(y,y)) is satisfiable.
+Ex(P(x,x)&~P(x,x)) is an existentially quantified formula.
+ Ex(P(x,x)&~P(x,x)) is not satisfiable.
+Ax~EyS(x,y) is a universally quantified formula. 
+Ax~EyS(x,y) is satisfiable.
+~AxP(x,x) is a negation of a first order logic formula.
+ ~AxP(x,x) is satisfiable.
+(AxP(x,x)&~AxP(x,x)) is a binary connective first order formula. Its left hand side is AxP(x,x), its connective is &, and its right hand side is ~AxP(x,x).
+ (AxP(x,x)&~AxP(x,x)) is not satisfiable.
+t is not a formula.
+P(a,x) is not a formula.
+P(x) is not a formula.
+Z(x,y) is not a formula.
+(p -> q) is not a formula.
+((p)) is not a formula.
+p#q is not a formula.
+AuP(u,u) is not a formula.
+p\/ is not a formula.
+(P(x,y) is not a formula.
