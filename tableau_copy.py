@@ -19,7 +19,7 @@ QUANTIFIERS = {'A', 'E'}
 # Unary connective
 NEGATION = '~'
 
-# Binary connectives
+# Binary connectives (for clarity; we don't directly iterate this)
 BINARY_CONNECTIVES = {'&', "\\/", "->"}
 
 # Characters allowed to appear in input formulas
@@ -108,44 +108,45 @@ def find_main_connective(s):
 
 
 # ============================================================
-#                         PARSE FORMULA
+#                        BUILD AST
 # ============================================================
 
-def parse_formula(s, binary_cache):
+def build_ast(s, binary_cache):
+    """
+    只构造 AST，不做分类。
+    如果不是合法公式，返回 None。
+    """
     s = s.strip()
     if s == '':
-        return None, 0
+        return None
 
     # Propositional atom
     if is_prop_atom(s):
-        return ('prop', s), 6
+        return ('prop', s)
 
     # Predicate atom
     pred = parse_predicate(s)
     if pred:
-        return pred, 1
+        return pred
 
     # Negation
-    if s.startswith('~'):
-        sub, cls = parse_formula(s[1:], binary_cache)
+    if s.startswith(NEGATION):
+        sub = build_ast(s[1:], binary_cache)
         if not sub:
-            return None, 0
-        if cls in [6, 7, 8]:
-            # negation of propositional formula
-            return ('not', sub), 7
-        else:
-            # negation of first-order formula
-            return ('not', sub), 2
+            return None
+        return ('not', sub)
 
-    # Quantifiers: Avar or Evar
-    if len(s) >= 3 and s[0] in ['A', 'E'] and s[1] in VAR:
+    # Quantifiers: Avar φ or Evar φ
+    if len(s) >= 3 and s[0] in QUANTIFIERS and s[1] in VAR:
         quant = s[0]
         var = s[1]
-        sub_fmla, sub_cls = parse_formula(s[2:], binary_cache)
+        sub_fmla = build_ast(s[2:], binary_cache)
         if not sub_fmla:
-            return None, 0
-        node = ('forall', var, sub_fmla) if quant == 'A' else ('exists', var, sub_fmla)
-        return node, 3 if quant == 'A' else 4
+            return None
+        if quant == 'A':
+            return ('forall', var, sub_fmla)
+        else:
+            return ('exists', var, sub_fmla)
 
     # Binary connective
     s_inner = strip_parens(s)
@@ -153,10 +154,11 @@ def parse_formula(s, binary_cache):
     if conn:
         left_s = s_inner[:idx]
         right_s = s_inner[idx + len(conn):]
-        left, left_cls = parse_formula(left_s, binary_cache)
-        right, right_cls = parse_formula(right_s, binary_cache)
+
+        left = build_ast(left_s, binary_cache)
+        right = build_ast(right_s, binary_cache)
         if not left or not right:
-            return None, 0
+            return None
 
         if conn == '->':
             node = ('imp', left, right)
@@ -165,16 +167,65 @@ def parse_formula(s, binary_cache):
         else:  # '\\/'
             node = ('or', left, right)
 
-        # classify as propositional or first-order binary
-        if left_cls in [6, 7, 8] and right_cls in [6, 7, 8]:
-            classification = 8  # binary connective propositional formula
-        else:
-            classification = 5  # binary connective first-order formula
-
+        # 二元缓存：用当前层的原字符串 s 作为 key（和你之前行为一致）
         binary_cache[s] = (left_s, conn, right_s)
-        return node, classification
+        return node
 
-    return None, 0
+    # If nothing matches, not a well-formed formula
+    return None
+
+
+# ============================================================
+#                        CLASSIFY AST
+# ============================================================
+
+def classify(ast):
+    """
+    根据 AST 形状给出 skeleton 要求的分类号：
+    0–8 对应 parseOutputs。
+    """
+    if ast is None:
+        return 0
+
+    k = ast[0]
+
+    if k == 'prop':
+        # 6: a proposition
+        return 6
+
+    if k == 'pred':
+        # 1: an atom (first-order atom)
+        return 1
+
+    if k == 'not':
+        sub_cls = classify(ast[1])
+        # 7: a negation of a propositional formula
+        # 2: a negation of a first-order logic formula
+        if sub_cls in (6, 7, 8):
+            return 7
+        else:
+            return 2
+
+    if k == 'forall':
+        # 3: a universally quantified formula
+        return 3
+
+    if k == 'exists':
+        # 4: an existentially quantified formula
+        return 4
+
+    if k in ('and', 'or', 'imp'):
+        left_cls = classify(ast[1])
+        right_cls = classify(ast[2])
+        # 8: binary connective propositional formula
+        # 5: binary connective first order formula
+        if left_cls in (6, 7, 8) and right_cls in (6, 7, 8):
+            return 8
+        else:
+            return 5
+
+    # Unknown kind
+    return 0
 
 
 # ============================================================
@@ -190,11 +241,16 @@ def parse(fmla):
         if ch not in ALLOWED_CHARS:
             return 0
 
-    ast, classification = parse_formula(fmla, _binary_cache)
+    ast = build_ast(fmla, _binary_cache)
 
     parse._binary_cache = _binary_cache
     parse._ast_cache = getattr(parse, '_ast_cache', {})
     parse._ast_cache[fmla] = ast
+
+    if not ast:
+        return 0
+
+    classification = classify(ast)
     return classification
 
 
@@ -215,10 +271,6 @@ def con(fmla):
 def rhs(fmla):
     cache = getattr(parse, '_binary_cache', {})
     return cache.get(fmla, ('', '', ''))[2]
-
-
-
-
 
 
 # ============================================================

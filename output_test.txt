@@ -1,3 +1,7 @@
+(~(p->q)&q) is a binary connective propositional formula. Its left hand side is ~(p->q), its connective is &, and its right hand side is q.
+(~(p->q)&q) is not satisfiable.
+(~~~p\/(q&~q)) is a binary connective propositional formula. Its left hand side is ~~~p, its connective is \/, and its right hand side is (q&~q).
+(~~~p\/(q&~q)) is satisfiable.
 p\q is not a formula.
 p\q is not a formula.
 p//q is not a formula.

@@ -36,11 +36,13 @@ def sat(tableau):
 f = open('input.txt')
 
 parseOutputs = ['not a formula',
+                
                 'an atom',
                 'a negation of a first order logic formula',
                 'a universally quantified formula',
                 'an existentially quantified formula',
                 'a binary connective first order formula',
+
                 'a proposition',
                 'a negation of a propositional formula',
                 'a binary connective propositional formula']

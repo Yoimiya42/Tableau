@@ -1,9 +1,8 @@
-
 MAX_CONSTANTS = 10
 
-# ===========================================
-# Legal tokens
-# ===========================================
+# ============================================================
+#                      GLOBAL TOKEN SETS
+# ============================================================
 
 # Propositional letters
 PROP = {'p', 'q', 'r', 's'}
@@ -20,13 +19,26 @@ QUANTIFIERS = {'A', 'E'}
 # Unary connective
 NEGATION = '~'
 
-# Binary connectives
+# Binary connectives (for clarity; we don't directly iterate this)
 BINARY_CONNECTIVES = {'&', "\\/", "->"}
 
+# Characters allowed to appear in input formulas
+ALLOWED_CHARS = (
+    PROP
+    | VAR
+    | PRED
+    | QUANTIFIERS
+    | set(NEGATION)
+    | set(['(', ')', ',', '&', '\\', '/', '-', '>'])
+)
 
 
 # Parse a formula, consult parseOutputs for return values.
 def parse(fmla):
+
+    if not all(ch in ALLOWED_CHARS for ch in fmla):
+        return 0 
+
     return 0
 
 # Return the LHS of a binary connective formula
@@ -50,6 +62,49 @@ def theory(fmla):#initialise a theory with a single formula in it
 def sat(tableau):
 #output 0 if not satisfiable, output 1 if satisfiable, output 2 if number of constants exceeds MAX_CONSTANTS
     return 0
+
+
+# ============================================================
+#                   PARSE HELPERS (TOP LEVEL)
+# ============================================================
+def is_prop_atom(f: str) -> bool:
+    return f in PROP
+
+def is_fol_atom(f: str) -> bool:
+    if len(f) < 6 or f[0] not in PRED or f[1] != '(' or f[-1] != ')':
+        return False
+    
+    terms = f[2:-1].split(',')
+
+conn = str
+left = str
+right = str
+
+def find_main_connective(f: str) -> tuple[conn, left,right]:
+    if len(f) < 5 or f[0] != '(' or f[-1] != ')':
+        return None
+
+    depth = 0
+    for i, ch in enumerate(f):
+        if ch == '(':
+            depth += 1
+            continue
+
+        elif ch == ')':
+            depth -= 1
+            continue
+
+        elif depth == 1:
+            if f.startswith('\\/', i):
+                return ('\\/', f[1:i], f[i+2:-1])
+            if f.startswith('->', i):
+                return ('->', f[1:i], f[i+2:-1])
+            if ch == '&':
+                return ('&', f[1:i], f[i+1:-1])
+    return None
+
+
+
 
 
 #------------------------------------------------------------------------------------------------------------------------------:
