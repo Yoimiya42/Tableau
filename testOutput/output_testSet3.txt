@@ -1,0 +1,10 @@
+ExAy((S(x,y)->~S(y,y))&(~S(y,y)->S(x,y))) is an existentially quantified formula.
+ExAy((S(x,y)->~S(y,y))&(~S(y,y)->S(x,y))) is not satisfiable.
+(EyAxR(x,y)&~AxEyR(x,y)) is a binary connective first order formula. Its left hand side is EyAxR(x,y), its connective is &, and its right hand side is ~AxEyR(x,y).
+(EyAxR(x,y)&~AxEyR(x,y)) is not satisfiable.
+Ex(P(x,x)&Ax~P(x,x)) is an existentially quantified formula.
+Ex(P(x,x)&Ax~P(x,x)) is not satisfiable.
+~Ex(P(x,x)->AyP(y,y)) is a negation of a first order logic formula.
+~Ex(P(x,x)->AyP(y,y)) is not satisfiable.
+(Ax(P(x,x)\/Q(x,x))&(Ex~P(x,x)&Ex~Q(x,x))) is a binary connective first order formula. Its left hand side is Ax(P(x,x)\/Q(x,x)), its connective is &, and its right hand side is (Ex~P(x,x)&Ex~Q(x,x)).
+(Ax(P(x,x)\/Q(x,x))&(Ex~P(x,x)&Ex~Q(x,x))) is satisfiable.

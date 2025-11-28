@@ -1,0 +1,7 @@
+PARSE SAT
+~Ex(P(x,x)->AyP(y,y))
+ExAy((S(x,y)->~S(y,y))&(~S(y,y)->S(x,y)))
+(EyAxR(x,y)&~AxEyR(x,y))
+Ex(P(x,x)&Ax~P(x,x))
+~Ex(P(x,x)->AyP(y,y))
+(Ax(P(x,x)\/Q(x,x))&(Ex~P(x,x)&Ex~Q(x,x)))

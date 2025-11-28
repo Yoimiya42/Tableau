@@ -1,0 +1,36 @@
+P(x,y) is satisfiable.
+~P(x,x) is satisfiable.
+(P(x,x)->P(x,x)) is satisfiable.
+~(P(x,x)->P(x,x)) is not satisfiable.
+(P(x,x)&~P(x,x)) is not satisfiable.
+(P(x,x)\/~P(x,x)) is satisfiable.
+(AxP(x,x)&Ex~P(x,x)) is not satisfiable.
+(AxP(x,x)->ExP(x,x)) is satisfiable.
+Ex(P(x,x)&~P(x,x)) is not satisfiable.
+Ex(P(x,x)&Ax~P(x,x)) is not satisfiable.
+~Ex(P(x,x)->AyP(y,y)) is not satisfiable.
+~Ax(P(x,x)&~P(x,x)) is satisfiable.
+Ax(P(x,x)&~P(x,x)) is not satisfiable.
+Ax(P(x,x)->AyP(y,y)) is satisfiable.
+(AxP(x,x)&~AxP(x,x)) is not satisfiable.
+(ExP(x,x)&~ExP(x,x)) is not satisfiable.
+~Ax~EyP(x,y) is satisfiable.
+Ax~EyP(x,y) is satisfiable.
+~ExAyR(x,y) may or may not be satisfiable.
+ExAyR(x,y) is satisfiable.
+ExEy(P(x,y)&Ax~P(x,y)) is not satisfiable.
+~ExEy(P(x,y)&Ax~P(x,y)) is satisfiable.
+(Ex(P(x,x)&~P(x,x))\/AxQ(x,x)) is satisfiable.
+(AxEyP(x,y)&EzQ(z,z)) may or may not be satisfiable.
+(ExP(x,x)&Ax(~P(x,x)->P(x,x))) is satisfiable.
+(Ax(P(x,x)\/Q(x,x))&(Ex~P(x,x)&Ex~Q(x,x))) is satisfiable.
+(Ex(P(x,x)&~P(x,x))&(Ex(P(x,x)&~P(x,x)))) is not a formula.
+(Ex(P(x,x)&~P(x,x))->(AxP(x,x)->AxP(x,x))) is satisfiable.
+~(Ex(P(x,x)&~P(x,x))->(AxP(x,x)->AxP(x,x))) is not satisfiable.
+Ex(P(x,x)&Ex(P(x,x)&Ex(P(x,x)&~P(x,x)))) is not satisfiable.
+(ExP(x,x)&ExP(x,x)&ExP(x,x)) is not a formula.
+~Ex~Ey~P(x,y) may or may not be satisfiable.
+~~Ex~Ey~P(x,y) is satisfiable.
+Ex~Ey~P(x,y) is satisfiable.
+(ExAyR(x,y)->~AxEyR(x,y)) is satisfiable.
+~(ExAyR(x,y)->~AxEyR(x,y)) may or may not be satisfiable.

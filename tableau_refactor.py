@@ -25,7 +25,6 @@ ALLOWED_CHARS: set[str] = (
     | set(['(', ')', ',', '&', '\\', '/', '-', '>'])
 )
 
-# Global AST cache
 _ast_cache: dict[str, tuple | None] = {}
 
 
@@ -168,6 +167,7 @@ def theory(fmla: str) -> list[tuple]:
         ast = _ast_cache.get(fmla)
     return [ast] if ast else []
 
+
 # ===================== Tableau Helper Functions =====================
 
 def ast_to_formula(ast: tuple) -> str:
@@ -258,21 +258,17 @@ def create_fresh_constant(constants: set[str]) -> str:
 def match_alpha_rule(ast: tuple):
     constructor = ast[0]
 
-    # A & B
     if constructor == '&':
         return ('alpha', (ast[1], ast[2]))
 
-    # ¬(A \/ B)
     if constructor == '~' and ast[1][0] == '\\/':
         sub = ast[1]
         return ('alpha', (('~', sub[1]), ('~', sub[2])))
 
-    # ¬(A -> B)
     if constructor == '~' and ast[1][0] == '->':
         sub = ast[1]
         return ('alpha', (sub[1], ('~', sub[2])))
 
-    # ¬¬A
     if constructor == '~' and ast[1][0] == '~':
         return ('alpha', (ast[1][1], None))
 
@@ -282,15 +278,12 @@ def match_alpha_rule(ast: tuple):
 def match_beta_rule(ast: tuple):
     constructor = ast[0]
 
-    # A \/ B
     if constructor == '\\/':
         return ('beta', (ast[1], ast[2]))
 
-    # A -> B
     if constructor == '->':
         return ('beta', (('~', ast[1]), ast[2]))
 
-    # ¬(A & B)
     if constructor == '~' and ast[1][0] == '&':
         sub = ast[1]
         return ('beta', (('~', sub[1]), ('~', sub[2])))
@@ -301,11 +294,9 @@ def match_beta_rule(ast: tuple):
 def match_delta_rule(ast: tuple):
     constructor = ast[0]
 
-    # ∃x φ(x)  →  φ(c/x)
     if constructor == 'exists':
         return ('delta', (False, ast[1], ast[2]))
 
-    # ¬∀x φ(x) → ¬φ(c/x)
     if constructor == '~' and ast[1][0] == 'forall':
         sub = ast[1]
         return ('delta', (True, sub[1], sub[2]))
@@ -316,11 +307,9 @@ def match_delta_rule(ast: tuple):
 def match_gamma_rule(ast: tuple, constants: set[str], gamma_used: dict):
     constructor = ast[0]
 
-    # ∀x φ(x) → φ(c/x)
     if constructor == 'forall':
         variable, body = ast[1], ast[2]
 
-    # ¬∃x φ(x)  → ¬φ(c/x)
     elif constructor == '~' and ast[1][0] == 'exists':
         sub = ast[1]
         variable, body = sub[1], ('~', sub[2])
@@ -328,25 +317,123 @@ def match_gamma_rule(ast: tuple, constants: set[str], gamma_used: dict):
     else:
         return None
 
-    used_constants = gamma_used.get(ast, set())
+    used = gamma_used.get(ast, set())
 
-    # 如果当前还没有 closed term，就为 γ 引入第一个常量
     if not constants:
         c = create_fresh_constant(constants)
         return ('gamma', (variable, body, c, True))
 
-    # 否则在已有常量中挑一个没用过的
     for c in constants:
-        if c not in used_constants:
+        if c not in used:
             return ('gamma', (variable, body, c, False))
 
     return None
 
 
-# =========================== Tableau SAT ===========================
+# ========== Select expansion (抽出第一步重构核心) ==========
+
+def select_expansion(formulas: list[tuple], branch: dict):
+    for f in formulas:
+        if is_literal_formula(f):
+            continue
+
+        res = match_alpha_rule(f)
+        if res:
+            return f, res[0], res[1]
+
+        res = match_beta_rule(f)
+        if res:
+            return f, res[0], res[1]
+
+        res = match_delta_rule(f)
+        if res:
+            return f, res[0], res[1]
+
+        res = match_gamma_rule(f, branch['constants'], branch['gamma_used'])
+        if res:
+            return f, res[0], res[1]
+
+    return None, None, None
+
+
+# ========== Apply rule expansions (抽出第二步重构核心) ==========
+
+def apply_alpha_expansion(formulas, branch, formula, data, queue):
+    left, right = data
+    new_formulas = [g for g in formulas if g is not formula]
+    if left:
+        add_formula_to_branch(new_formulas, left)
+    if right:
+        add_formula_to_branch(new_formulas, right)
+    queue.append({
+        'formulas': new_formulas,
+        'constants': set(branch['constants']),
+        'gamma_used': {k: set(v) for k, v in branch['gamma_used'].items()},
+    })
+
+
+def apply_beta_expansion(formulas, branch, formula, data, queue):
+    left, right = data
+    for child in (left, right):
+        new_formulas = [g for g in formulas if g is not formula]
+        add_formula_to_branch(new_formulas, child)
+        queue.append({
+            'formulas': new_formulas,
+            'constants': set(branch['constants']),
+            'gamma_used': {k: set(v) for k, v in branch['gamma_used'].items()},
+        })
+
+
+def apply_delta_expansion(formulas, branch, formula, data, queue):
+    is_negated_forall, variable, body = data
+
+    new_const = create_fresh_constant(branch['constants'])
+    new_constants = set(branch['constants'])
+    new_constants.add(new_const)
+
+    if len(new_constants) > MAX_CONSTANTS:
+        return True
+
+    instance = substitute_term(body, variable, new_const)
+    if is_negated_forall:
+        instance = ('~', instance)
+
+    new_formulas = [g for g in formulas if g is not formula]
+    add_formula_to_branch(new_formulas, instance)
+
+    queue.append({
+        'formulas': new_formulas,
+        'constants': new_constants,
+        'gamma_used': {k: set(v) for k, v in branch['gamma_used'].items()},
+    })
+    return False
+
+
+def apply_gamma_expansion(formulas, branch, formula, data, queue):
+    variable, body, const, is_new = data
+
+    new_constants = set(branch['constants'])
+    if is_new:
+        new_constants.add(const)
+
+    instance = substitute_term(body, variable, const)
+
+    new_formulas = list(formulas)
+    add_formula_to_branch(new_formulas, instance)
+
+    new_gamma_used = {k: set(v) for k, v in branch['gamma_used'].items()}
+    new_gamma_used.setdefault(formula, set()).add(const)
+
+    queue.append({
+        'formulas': new_formulas,
+        'constants': new_constants,
+        'gamma_used': new_gamma_used,
+    })
+
+
+# =========================== Tableau SAT (精简后的主体) ===========================
 
 def sat(tableau: list[list[tuple]]) -> int:
-    # ---- Initial branch ----
     branch = {
         'formulas': list(tableau[0]),
         'constants': set(),
@@ -355,7 +442,6 @@ def sat(tableau: list[list[tuple]]) -> int:
     queue = [branch]
     unknown = False
 
-    # ---- Main loop ----
     while queue:
         branch = queue.pop(0)
         formulas = branch['formulas']
@@ -363,124 +449,34 @@ def sat(tableau: list[list[tuple]]) -> int:
         if is_branch_closed(formulas):
             continue
 
-        formula_to_expand = None
-        expansion_rule = None
-        expansion_data = None
+        formula, rule, data = select_expansion(formulas, branch)
 
-        # Pick rule (α > β > δ > γ)
-        for f in formulas:
-            if is_literal_formula(f):
-                continue
+        if formula is None:
+            return 1  # satisfiable
 
-            res = match_alpha_rule(f)
-            if res:
-                expansion_rule, expansion_data = res
-                formula_to_expand = f
-                break
+        if rule == 'alpha':
+            apply_alpha_expansion(formulas, branch, formula, data, queue)
 
-            res = match_beta_rule(f)
-            if res:
-                expansion_rule, expansion_data = res
-                formula_to_expand = f
-                break
+        elif rule == 'beta':
+            apply_beta_expansion(formulas, branch, formula, data, queue)
 
-            res = match_delta_rule(f)
-            if res:
-                expansion_rule, expansion_data = res
-                formula_to_expand = f
-                break
-
-            res = match_gamma_rule(f, branch['constants'], branch['gamma_used'])
-            if res:
-                expansion_rule, expansion_data = res
-                formula_to_expand = f
-                break
-
-        # Open and fully expanded → satisfiable
-        if formula_to_expand is None:
-            return 1
-
-        # ---------- Apply rule ----------
-        if expansion_rule == 'alpha':
-            left, right = expansion_data
-            new_f = [g for g in formulas if g is not formula_to_expand]
-            if left:
-                add_formula_to_branch(new_f, left)
-            if right:
-                add_formula_to_branch(new_f, right)
-            queue.append({
-                'formulas': new_f,
-                'constants': set(branch['constants']),
-                'gamma_used': {k: set(v) for k, v in branch['gamma_used'].items()},
-            })
-
-        elif expansion_rule == 'beta':
-            left, right = expansion_data
-            for child in (left, right):
-                new_f = [g for g in formulas if g is not formula_to_expand]
-                add_formula_to_branch(new_f, child)
-                queue.append({
-                    'formulas': new_f,
-                    'constants': set(branch['constants']),
-                    'gamma_used': {k: set(v) for k, v in branch['gamma_used'].items()},
-                })
-
-        elif expansion_rule == 'delta':
-            is_negated_forall, variable, body = expansion_data
-
-            c = create_fresh_constant(branch['constants'])
-            new_constants = set(branch['constants'])
-            new_constants.add(c)
-
-            # δ-expansions count towards MAX_CONSTANTS
-            if len(new_constants) > MAX_CONSTANTS:
+        elif rule == 'delta':
+            if apply_delta_expansion(formulas, branch, formula, data, queue):
                 unknown = True
-                continue
 
-            instance = substitute_term(body, variable, c)
-            if is_negated_forall:
-                instance = ('~', instance)
-
-            new_f = [g for g in formulas if g is not formula_to_expand]
-            add_formula_to_branch(new_f, instance)
-
-            queue.append({
-                'formulas': new_f,
-                'constants': new_constants,
-                'gamma_used': {k: set(v) for k, v in branch['gamma_used'].items()},
-            })
-
-        elif expansion_rule == 'gamma':
-            variable, body, const, is_new = expansion_data
-
-            new_constants = set(branch['constants'])
-            if is_new:
-                # γ 也会引入第一个 closed term，但不计入 δ 限制
-                new_constants.add(const)
-
-            instance = substitute_term(body, variable, const)
-
-            new_f = list(formulas)
-            add_formula_to_branch(new_f, instance)
-
-            new_gamma_used = {k: set(v) for k, v in branch['gamma_used'].items()}
-            new_gamma_used.setdefault(formula_to_expand, set()).add(const)
-
-            queue.append({
-                'formulas': new_f,
-                'constants': new_constants,
-                'gamma_used': new_gamma_used,
-            })
+        elif rule == 'gamma':
+            apply_gamma_expansion(formulas, branch, formula, data, queue)
 
     return 2 if unknown else 0
 
 
 # ==================== DO NOT MODIFY BELOW THIS LINE ====================
 
-f = open('input.txt')
+
+# f = open('input.txt')
 # f = open('testSet2.txt')
-# f = open('testSet3.txt')
-# f = open('testSet4.txt')
+f = open('testSet/testSet3.txt')
+# f = open('testSet/testSet4.txt')
 
 parseOutputs = ['not a formula',
                 'an atom',

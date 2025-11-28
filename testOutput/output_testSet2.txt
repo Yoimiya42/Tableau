@@ -1,0 +1,92 @@
+p is a proposition.
+p is satisfiable.
+~q is a negation of a propositional formula.
+~q is satisfiable.
+(p&q) is a binary connective propositional formula. Its left hand side is p, its connective is &, and its right hand side is q.
+(p&q) is satisfiable.
+(r\/~s) is a binary connective propositional formula. Its left hand side is r, its connective is \/, and its right hand side is ~s.
+(r\/~s) is satisfiable.
+(~p->q) is a binary connective propositional formula. Its left hand side is ~p, its connective is ->, and its right hand side is q.
+(~p->q) is satisfiable.
+~(r&s) is a negation of a propositional formula.
+~(r&s) is satisfiable.
+~~p is a negation of a propositional formula.
+~~p is satisfiable.
+(p->(q&~r)) is a binary connective propositional formula. Its left hand side is p, its connective is ->, and its right hand side is (q&~r).
+(p->(q&~r)) is satisfiable.
+(q\/~(p->r)) is a binary connective propositional formula. Its left hand side is q, its connective is \/, and its right hand side is ~(p->r).
+(q\/~(p->r)) is satisfiable.
+~(~p\/~q) is a negation of a propositional formula.
+~(~p\/~q) is satisfiable.
+(p&((q\/r)->s)) is a binary connective propositional formula. Its left hand side is p, its connective is &, and its right hand side is ((q\/r)->s).
+(p&((q\/r)->s)) is satisfiable.
+P(x,y) is an atom.
+P(x,y) is satisfiable.
+~Q(z,w) is a negation of a first order logic formula.
+~Q(z,w) is satisfiable.
+(P(x,y)&Q(z,w)) is a binary connective first order formula. Its left hand side is P(x,y), its connective is &, and its right hand side is Q(z,w).
+(P(x,y)&Q(z,w)) is satisfiable.
+(R(x,x)\/~S(y,z)) is a binary connective first order formula. Its left hand side is R(x,x), its connective is \/, and its right hand side is ~S(y,z).
+(R(x,x)\/~S(y,z)) is satisfiable.
+(P(x,y)->Q(y,x)) is a binary connective first order formula. Its left hand side is P(x,y), its connective is ->, and its right hand side is Q(y,x).
+(P(x,y)->Q(y,x)) is satisfiable.
+~(~R(x,y)->S(z,w)) is a negation of a first order logic formula.
+~(~R(x,y)->S(z,w)) is satisfiable.
+AxP(x,y) is a universally quantified formula.
+AxP(x,y) is satisfiable.
+ExQ(z,z) is an existentially quantified formula.
+ExQ(z,z) is satisfiable.
+AxEyR(x,y) is a universally quantified formula.
+AxEyR(x,y) may or may not be satisfiable.
+ExAyS(w,z) is an existentially quantified formula.
+ExAyS(w,z) is satisfiable.
+~AxQ(x,y) is a negation of a first order logic formula.
+~AxQ(x,y) is satisfiable.
+~ExP(x,y) is a negation of a first order logic formula.
+~ExP(x,y) is satisfiable.
+Ax(P(x,y)&Q(y,x)) is a universally quantified formula.
+Ax(P(x,y)&Q(y,x)) is satisfiable.
+Ex(R(x,y)\/~S(x,y)) is an existentially quantified formula.
+Ex(R(x,y)\/~S(x,y)) is satisfiable.
+Ax(Q(x,y)->~P(x,y)) is a universally quantified formula.
+Ax(Q(x,y)->~P(x,y)) is satisfiable.
+(~P(x,y)\/p) is a binary connective first order formula. Its left hand side is ~P(x,y), its connective is \/, and its right hand side is p.
+(~P(x,y)\/p) is satisfiable.
+(q&~AxP(x,y)) is a binary connective first order formula. Its left hand side is q, its connective is &, and its right hand side is ~AxP(x,y).
+(q&~AxP(x,y)) is satisfiable.
+(~(p&q)->R(x,y)) is a binary connective first order formula. Its left hand side is ~(p&q), its connective is ->, and its right hand side is R(x,y).
+(~(p&q)->R(x,y)) is satisfiable.
+Ax(p->Q(x,x)) is a universally quantified formula.
+Ax(p->Q(x,x)) is satisfiable.
+~(p&AxP(x,x)) is a negation of a first order logic formula.
+~(p&AxP(x,x)) is satisfiable.
+(p&~p) is a binary connective propositional formula. Its left hand side is p, its connective is &, and its right hand side is ~p.
+(p&~p) is not satisfiable.
+(p\/~p) is a binary connective propositional formula. Its left hand side is p, its connective is \/, and its right hand side is ~p.
+(p\/~p) is satisfiable.
+(ExP(x,x)&~P(x,x)) is a binary connective first order formula. Its left hand side is ExP(x,x), its connective is &, and its right hand side is ~P(x,x).
+(ExP(x,x)&~P(x,x)) is satisfiable.
+Ax(P(x,x)\/~P(x,x)) is a universally quantified formula.
+Ax(P(x,x)\/~P(x,x)) is satisfiable.
+(AxP(x,x)&~ExP(x,x)) is a binary connective first order formula. Its left hand side is AxP(x,x), its connective is &, and its right hand side is ~ExP(x,x).
+(AxP(x,x)&~ExP(x,x)) is not satisfiable.
+(AxP(x,x)&~P(y,y)) is a binary connective first order formula. Its left hand side is AxP(x,x), its connective is &, and its right hand side is ~P(y,y).
+(AxP(x,x)&~P(y,y)) is satisfiable.
+ExP(x,x) is an existentially quantified formula.
+ExP(x,x) is satisfiable.
+AxP(x,x) is a universally quantified formula.
+AxP(x,x) is satisfiable.
+P(x,c)  is not a formula.
+P(x,c)  is not a formula.
+(p&q is not a formula.
+(p&q is not a formula.
+(p&q)) is not a formula.
+(p&q)) is not a formula.
+p&q is not a formula.
+p&q is not a formula.
+A(x)P(x,y)  is not a formula.
+A(x)P(x,y)  is not a formula.
+ExP(x,y,z)  is not a formula.
+ExP(x,y,z)  is not a formula.
+(p~q) is not a formula.
+(p~q) is not a formula.
