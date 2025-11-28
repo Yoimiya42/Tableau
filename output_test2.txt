@@ -1,45 +1,3 @@
-((p->q)&p)&~q is not a formula.
-((p->q)&p)&~q is not a formula.
-(p\/(q->r))->(r&s) is not a formula.
-(p\/(q->r))->(r&s) is not a formula.
-~((p&~q)\/(~p&q)) is a negation of a propositional formula.
-~((p&~q)\/(~p&q)) is satisfiable.
-(p->(q->p)) is a binary connective propositional formula. Its left hand side is p, its connective is ->, and its right hand side is (q->p).
-(p->(q->p)) is satisfiable.
-P(x,y) is an atom.
-P(x,y) is satisfiable.
-~Ex(P(x,x)\/Q(x,x)) is a negation of a first order logic formula.
-~Ex(P(x,x)\/Q(x,x)) is satisfiable.
-(AxP(x,x)&~AxP(x,x)) is a binary connective first order formula. Its left hand side is AxP(x,x), its connective is &, and its right hand side is ~AxP(x,x).
-(AxP(x,x)&~AxP(x,x)) is not satisfiable.
-(ExP(x,x)->~AyQ(y,y)) is a binary connective first order formula. Its left hand side is ExP(x,x), its connective is ->, and its right hand side is ~AyQ(y,y).
-(ExP(x,x)->~AyQ(y,y)) is satisfiable.
-ExAy((R(x,y)->~R(y,y))&(~R(y,y)->R(x,y))) is an existentially quantified formula.
-ExAy((R(x,y)->~R(y,y))&(~R(y,y)->R(x,y))) is not satisfiable.
-(EyAxR(x,y)&~AxEyR(x,y)) is a binary connective first order formula. Its left hand side is EyAxR(x,y), its connective is &, and its right hand side is ~AxEyR(x,y).
-(EyAxR(x,y)&~AxEyR(x,y)) is not satisfiable.
-Ex(P(x,x)&Ax~P(x,x)) is an existentially quantified formula.
-Ex(P(x,x)&Ax~P(x,x)) is not satisfiable.
-~Ex(P(x,x)->AyP(y,y)) is a negation of a first order logic formula.
-~Ex(P(x,x)->AyP(y,y)) is not satisfiable.
-(Ax(P(x,x)\/Q(x,x))&(Ex~P(x,x)&Ex~Q(x,x))) is a binary connective first order formula. Its left hand side is Ax(P(x,x)\/Q(x,x)), its connective is &, and its right hand side is (Ex~P(x,x)&Ex~Q(x,x)).
-(Ax(P(x,x)\/Q(x,x))&(Ex~P(x,x)&Ex~Q(x,x))) is satisfiable.
-AxEyR(x,y) is a universally quantified formula.
-AxEyR(x,y) may or may not be satisfiable.
-~ExAy~R(x,y) is a negation of a first order logic formula.
-~ExAy~R(x,y) may or may not be satisfiable.
-(Ex(P(x,x)&~P(x,x))\/AxQ(x,x)) is a binary connective first order formula. Its left hand side is Ex(P(x,x)&~P(x,x)), its connective is \/, and its right hand side is AxQ(x,x).
-(Ex(P(x,x)&~P(x,x))\/AxQ(x,x)) is satisfiable.
-Ax(P(x,x)->P(x,x)) is a universally quantified formula.
-Ax(P(x,x)->P(x,x)) is satisfiable.
-Ax(P(x)) is not a formula.
-Ax(P(x)) is not a formula.
-(p&q is not a formula.
-(p&q is not a formula.
-EyR(z,y) is an existentially quantified formula.
-EyR(z,y) is satisfiable.
- is not a formula.
- is not a formula.
 ExAy((S(x,y)->~S(y,y))&(~S(y,y)->S(x,y))) is an existentially quantified formula.
 ExAy((S(x,y)->~S(y,y))&(~S(y,y)->S(x,y))) is not satisfiable.
 (EyAxR(x,y)&~AxEyR(x,y)) is a binary connective first order formula. Its left hand side is EyAxR(x,y), its connective is &, and its right hand side is ~AxEyR(x,y).
@@ -140,20 +98,20 @@ Ax~EyS(x,y) is satisfiable.
 (AxP(x,x)&~AxP(x,x)) is not satisfiable.
 t is not a formula.
 t is not a formula.
-P(a,x) is not a formula.
-P(a,x) is not a formula.
-P(x) is not a formula.
-P(x) is not a formula.
-Z(x,y) is not a formula.
-Z(x,y) is not a formula.
+P(a,x) is an atom.
+P(a,x) is satisfiable.
+P(x) is an atom.
+P(x) is satisfiable.
+Z(x,y) is an atom.
+Z(x,y) is satisfiable.
 (p -> q) is not a formula.
 (p -> q) is not a formula.
 ((p)) is not a formula.
 ((p)) is not a formula.
 p#q is not a formula.
 p#q is not a formula.
-AuP(u,u) is not a formula.
-AuP(u,u) is not a formula.
+AuP(u,u) is a universally quantified formula.
+AuP(u,u) is satisfiable.
 p\/ is not a formula.
 p\/ is not a formula.
 (P(x,y) is not a formula.
